@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace HTTPserverproject
 {
-    class Service
+    public class Service
     {
         private TcpClient _connectionSocket;
 

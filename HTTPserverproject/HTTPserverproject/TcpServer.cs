@@ -26,7 +26,6 @@ namespace HTTPserverproject
             serverSocket.Start();
 
 
-            // NO While Loop Yet
             // Establish connection on incoming request. (AcceptTcpClient)
             TcpClient connectionSocket = serverSocket.AcceptTcpClient();
 
@@ -40,7 +39,15 @@ namespace HTTPserverproject
             string msg = "Hello World!";
             Console.WriteLine(msg); // added for console-UI
             sw.WriteLine(msg);
-            // NO While Loop Yet
+
+            // Now a dynamic response
+            msg = sr.ReadLine();
+            var msg2 = msg.Split('/');
+            foreach (var s in msg2)
+            {
+                Console.WriteLine(s);
+                sw.WriteLine(s);
+            }
 
             // Close connection to actually see response in browser window.
             serverSocket.Stop();

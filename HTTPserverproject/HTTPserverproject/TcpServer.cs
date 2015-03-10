@@ -44,10 +44,10 @@ namespace HTTPserverproject
                 sw.WriteLine(msg);
 
                 // Now a dynamic response -
-                msg = sr.ReadLine();
+
                 // split up the request by spaces
                 // split needs an array of string.
-                var msg2 = msg.Split(' ');
+                var msg2 = sr.ReadLine().Split(' ');
 
                 //For each string in the array.
 

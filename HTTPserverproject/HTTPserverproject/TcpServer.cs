@@ -44,39 +44,67 @@ namespace HTTPserverproject
                 sw.WriteLine(msg);
 
                 // Now a dynamic response -
-
                 // split up the request by spaces
+
                 // split needs an array of string.
+                // only need one line (request line) not the rest.
                 var msg2 = sr.ReadLine().Split(' ');
 
                 //For each string in the array.
-
                 foreach (var s in msg2)
                 {
                     Console.WriteLine(s);
                     sw.WriteLine(s);
-                    int i = 0;
-                    //introduced var int i - because only second string from split, contains desired path.
-                    if (i == 1)
+                }
+                foreach (var s in msg2)
+                {
+                    // Start by checking if the filepath is nothing (not null)
+                    if (s.Equals("/"))
                     {
+                        throw new NullReferenceException();
+                    }
+
+                    
+                    if (!s.Contains("GET") && !s.Contains("HTTP"))
+                    {
+
                         //Create stream for specific file. path from TCP-request.
                         FileStream fs = new FileStream(_rootCatalog + s, FileMode.Open, FileAccess.Read);
+
                         //using Filestream, read content and print it.
                         using (fs)
                         {
                             //Specialized reader
                             StreamReader sr2 = new StreamReader(fs);
+
                             //Read all content (to end)
                             msg = sr2.ReadToEnd();
+
                             //print it in console and browser.
                             sw.WriteLine(msg);
                             Console.WriteLine(msg);
                         }
-                        i++;
                     }
-                    i++;
+
                 }
 
+
+
+            }
+            catch (NullReferenceException)
+            {
+
+                Console.WriteLine("NullReferenceException");
+                sw.WriteLine("404 File not Found");
+
+            }
+            catch (FileNotFoundException)
+            {
+                Console.WriteLine("NullReferenceException");
+                sw.WriteLine("404 File not Found");
+            }
+            finally
+            {
                 // Close connection to actually see response in browser window.
                 serverSocket.Stop();
                 connectionSocket.Close();
@@ -84,16 +112,7 @@ namespace HTTPserverproject
                 sr.Close();
                 sw.Close();
                 Console.ReadKey(true);
-
             }
-            catch (NullReferenceException)
-            {
-
-                Console.WriteLine("NullReferenceException");
-
-            }
-
-
 
 
 

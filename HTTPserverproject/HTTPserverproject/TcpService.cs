@@ -18,14 +18,13 @@ namespace HTTPserverproject
         private TcpClient _connectionSocket;
         private string _msg;
 
-        public TcpService( TcpClient connectionSocket)
+        public TcpService(TcpClient connectionSocket)
         {
-            _connectionSocket = connectionSocket;
+            _connectionSocket = connectionSocket; // Constructor takes tcpclient as argument,
+            //to reference client made in Server, taking from incoming request on listener
         }
         private void EstablishConnection()
         {
-            
-
             // Get streams. Then split into specialized objects Reader/writer
             _ns = _connectionSocket.GetStream();
             _sr = new StreamReader(_ns);
@@ -76,7 +75,7 @@ namespace HTTPserverproject
             }
         }
         private void CloseConnection()
-        {
+        { // Closes connection for client
             _connectionSocket.Close();
             _ns.Close();
             _sr.Close();
@@ -84,13 +83,13 @@ namespace HTTPserverproject
         }
         public void ConnectAndStart()
         {
-            EstablishConnection();
+            EstablishConnection(); // Opens up Tcp client connection for instance.
 
             try
             {
                 GiveStaticResponse(); // Write Static Content in response
                 GiveDynamicFileResponse(); // splits request into 3 - gives response. If any, reads content of requested file
-                
+
             }
             catch (NullReferenceException) // In case of null-values
             {
@@ -108,6 +107,6 @@ namespace HTTPserverproject
             }
         }
 
-        
+
     }
 }

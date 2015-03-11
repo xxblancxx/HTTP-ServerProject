@@ -16,10 +16,13 @@ namespace HTTPserverprojectTest
 
         private void EstablishConnection(string request)
         {
+            // This methods creates a client and streams to read and write.
+            // The reason for the client is so that the test sends requests to test the servers handling.
             _client = new TcpClient("localhost", 8080);
             _ns = _client.GetStream();
             _sw = new StreamWriter(_ns);
             _sw.AutoFlush = true;
+            //Request as a method argument so each test method can have different requests.
             _request = request;
             _sw.WriteLine(_request);
             _sr = new StreamReader(_ns);
@@ -65,8 +68,12 @@ namespace HTTPserverprojectTest
             {
                 // See if the response contains error code 404 - File not found.
                 StreamReader sr = new StreamReader(_ns);
-                string line = sr.ReadToEnd();
-                if (line.Contains("404"))
+                string line = sr.ReadLine();
+                line = sr.ReadLine(); // Static response line
+                line = sr.ReadLine(); // GET part of request
+                line = sr.ReadLine(); // Requested path
+                line = sr.ReadLine(); // Error Message - or content if file is found.
+                if (line.Equals("404 File Not Found"))
                 {
                     // if it does, throw exception
                     throw new FileNotFoundException();

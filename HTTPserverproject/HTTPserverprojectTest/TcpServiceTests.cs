@@ -1,6 +1,8 @@
 ﻿using System;
 using System.IO;
+using System.Linq.Expressions;
 using System.Net.Sockets;
+using System.Security.Cryptography.X509Certificates;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace HTTPserverprojectTest
@@ -13,6 +15,8 @@ namespace HTTPserverprojectTest
         private StreamWriter _sw;
         private TcpClient _client;
         private string _request;
+        string _testFilePath;
+        string _testFileContent;
 
         private void EstablishConnection(string request)
         {
@@ -26,7 +30,22 @@ namespace HTTPserverprojectTest
             _request = request;
             _sw.WriteLine(_request);
             _sr = new StreamReader(_ns);
+            
         }
+
+        public void CreateTestFile()
+        {
+            _testFilePath = "c:/temp/existing.txt";
+            FileStream fs = new FileStream(_testFilePath, FileMode.OpenOrCreate, FileAccess.Write);
+            using (fs)
+            {
+                var sw1 = new StreamWriter(fs);
+                sw1.AutoFlush = true;
+                _testFileContent = "123";
+                sw1.Write(_testFileContent);
+            }
+        }
+
 
         private void CloseConnection()
         {
@@ -34,20 +53,25 @@ namespace HTTPserverprojectTest
             _sw.Close();
             _ns.Close();
         }
+
         [TestMethod]
-        public void ConnectAndStartResponseTest()
+        public void ConnectAndStartDynamicResponseTest()
         {
-            EstablishConnection("GET /hello.txt HTTP/1.0");
+            CreateTestFile();
+            EstablishConnection("GET /existing.txt HTTP/1.1");
 
 
             // recieve response
             _sr = new StreamReader(_ns);
             string line = _sr.ReadLine();
 
-            // Check that initial response is "Hello World" - we made static response as first assignment.
-            Assert.AreEqual("Hello World!", line);
-            // Unit test of Dynamic response, split by spaces.
-            var requestArray = _request.Split(' ');
+            // Initial Response should be status saying OK
+            Assert.AreEqual("HTTP/1.1 200 OK", line);
+            // Second response should be content of read file.
+            line = _sr.ReadLine();
+            Assert.AreEqual(_testFileContent,line);
+
+            var requestArray = _request.Split(' '); // we split up request by spaces
             // foreach loop to match the split in the server. just by our own sent variable.
             foreach (var s in requestArray)
             {
@@ -69,11 +93,7 @@ namespace HTTPserverprojectTest
                 // See if the response contains error code 404 - File not found.
                 StreamReader sr = new StreamReader(_ns);
                 string line = sr.ReadLine();
-                line = sr.ReadLine(); // Static response line
-                line = sr.ReadLine(); // GET part of request
-                line = sr.ReadLine(); // Requested path
-                line = sr.ReadLine(); // Error Message - or content if file is found.
-                if (line.Equals("404 File Not Found"))
+                if (line.Equals("HTTP/1.1 404 Not Found"))
                 {
                     // if it does, throw exception
                     throw new FileNotFoundException();
@@ -85,42 +105,14 @@ namespace HTTPserverprojectTest
             {
                 CloseConnection();
             }
-
         }
 
         [TestMethod]
-        // Create a .txt file, enter a line of content into it - Then test if the server can find and read it.
-        public void ConnectAndStartFileResponseTest()
+        public void ConnectAndStartStaticResponseTest() // test for static response
         {
-            // path for file
-            string path = "c:/temp/";
-            // Filename 
-            string filename = "existing.txt";
-            //contents of txt file.
-            string message = "123";
-            FileStream fs = new FileStream(path + filename, FileMode.OpenOrCreate, FileAccess.Write);
-            using (fs)
-            {
-                var sw1 = new StreamWriter(fs);
-                sw1.AutoFlush = true;
-
-                sw1.WriteLine(message);
-            }
-            EstablishConnection("GET /existing.txt HTTP/1.0");
-
-            // recieve response
-            StreamReader sr = new StreamReader(_ns);
-            // First line is static response
-            string line = sr.ReadLine();
-            //second, third and fourth lines are dynamic response, which is request split in 3.
-            line = sr.ReadLine();
-            line = sr.ReadLine();
-            line = sr.ReadLine();
-            // fourth one is content-print. so this is the one we want :)
-            line = sr.ReadLine();
-            CloseConnection();
-            Assert.AreEqual(message, line);
-
+            EstablishConnection("GET / HTTP/1.1"); // send request without path
+            string line = _sr.ReadLine();
+            Assert.AreEqual("Hello World!",line); //static response should be "Hello World!"
         }
     }
 }

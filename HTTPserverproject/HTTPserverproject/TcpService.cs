@@ -43,17 +43,13 @@ namespace HTTPserverproject
             // split needs an array of string. only need one line (request line) not the rest.
             var msg2 = _sr.ReadLine().Split(' ');
 
-            foreach (var s in msg2)//For each string in the array.
-            {
-                Console.WriteLine(s);
-                _sw.WriteLine(s); // write it out
-            }
+            
             foreach (var s in msg2)
             {
                 // Start by checking if the filepath is nothing (just a "/")
                 if (s.Equals("/"))
                 {
-                    throw new NullReferenceException();
+                    GiveStaticResponse(); // Write Static Content in response
                 }
 
                 if (!s.Contains("GET") && !s.Contains("HTTP"))
@@ -61,17 +57,26 @@ namespace HTTPserverproject
                     //Create stream for specific file. path from TCP-request.
                     FileStream fs = new FileStream(_rootCatalog + s, FileMode.Open, FileAccess.Read);
 
+                    if (fs.Length == 0) // Check if file is empty
+                    {
+                        throw new ArgumentNullException();
+                    }
                     //using Filestream, read content and print it.
+                    _sw.WriteLine("HTTP/1.1 200 OK");
+                    Console.WriteLine("HTTP/1.1 200 OK");
                     using (fs)
                     {
                         StreamReader sr2 = new StreamReader(fs); //Specialized reader
-
                         _msg = sr2.ReadToEnd(); //Read all content (to end)
-
                         _sw.WriteLine(_msg); // Response
                         Console.WriteLine(_msg); // console-print
                     }
                 }
+            }
+            foreach (var s in msg2)//For each string in the array.
+            {
+                Console.WriteLine(s);
+                _sw.WriteLine(s); // write it out
             }
         }
         private void CloseConnection()
@@ -87,19 +92,17 @@ namespace HTTPserverproject
 
             try
             {
-                GiveStaticResponse(); // Write Static Content in response
                 GiveDynamicFileResponse(); // splits request into 3 - gives response. If any, reads content of requested file
-
             }
-            catch (NullReferenceException) // In case of null-values
+            catch (ArgumentNullException) // In case of empty files.
             {
-                Console.WriteLine("NullReferenceException");
-                _sw.WriteLine("NullReferenceException");
+                Console.WriteLine("HTTP/1.1 204 No Content");
+                _sw.WriteLine("HTTP/1.1 204 No Content");
             }
             catch (FileNotFoundException) // If the file requested isn't there.
             {
-                Console.WriteLine("404 File Not Found");
-                _sw.WriteLine("404 File Not Found");
+                Console.WriteLine("HTTP/1.1 404 Not Found");
+                _sw.WriteLine("HTTP/1.1 404 Not Found");
             }
             finally
             {

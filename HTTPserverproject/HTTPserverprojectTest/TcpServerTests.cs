@@ -8,54 +8,63 @@ namespace HTTPserverprojectTest
     [TestClass]
     public class TcpServerTests
     {
-        [TestMethod]
-        public void ConnectAndStartTest()
+        private NetworkStream _ns;
+        private StreamReader _sr;
+        private StreamWriter _sw;
+        private TcpClient _client;
+        private string _request;
+
+        private void EstablishConnection(string request)
         {
-            TcpClient client = new TcpClient("localhost", 8080);
-            NetworkStream ns = client.GetStream();
-            StreamWriter sw = new StreamWriter(ns);
-            sw.AutoFlush = true;
-            string request = "GET /hello.txt HTTP/1.0";
-            sw.WriteLine(request);
+            _client = new TcpClient("localhost", 8080);
+            _ns = _client.GetStream();
+            _sw = new StreamWriter(_ns);
+            _sw.AutoFlush = true;
+            _request = request;
+            _sw.WriteLine(_request);
+            _sr = new StreamReader(_ns);
+        }
+
+        private void CloseConnection()
+        {
+            _sr.Close();
+            _sw.Close();
+            _ns.Close();
+        }
+        [TestMethod]
+        public void ConnectAndStartResponseTest()
+        {
+            EstablishConnection("GET /hello.txt HTTP/1.0");
 
 
             // recieve response
-            StreamReader sr = new StreamReader(ns);
-            string line = sr.ReadLine();
+            _sr = new StreamReader(_ns);
+            string line = _sr.ReadLine();
 
             // Check that initial response is "Hello World" - we made static response as first assignment.
             Assert.AreEqual("Hello World!", line);
             // Unit test of Dynamic response, split by spaces.
-            var requestArray = request.Split(' ');
+            var requestArray = _request.Split(' ');
             // foreach loop to match the split in the server. just by our own sent variable.
             foreach (var s in requestArray)
             {
-                line = sr.ReadLine();
+                line = _sr.ReadLine();
                 Assert.AreEqual(s, line);
             }
 
-            sr.Close();
-            sw.Close();
-            ns.Close();
+            CloseConnection();
         }
 
         [TestMethod]
         // testmethod to test for response of non-existing file.
         public void ConnectAndStartFileNotFoundTest()
         {
-            // Create client to send request, instead of browser.
-            TcpClient client = new TcpClient("localhost", 8080);
-            NetworkStream ns = client.GetStream();
-            StreamWriter sw = new StreamWriter(ns);
-            sw.AutoFlush = true;
-            //Send request for file we know isn't there
-            string request = "GET /doesntexist.txt HTTP/1.0";
-            sw.WriteLine(request);
+            EstablishConnection("GET /doesntExist.txt HTTP/1.0");
 
             try
             {
                 // See if the response contains error code 404 - File not found.
-                StreamReader sr = new StreamReader(ns);
+                StreamReader sr = new StreamReader(_ns);
                 string line = sr.ReadToEnd();
                 if (line.Contains("404"))
                 {
@@ -63,11 +72,11 @@ namespace HTTPserverprojectTest
                     throw new FileNotFoundException();
                 }
                 Assert.Fail();
+                
             }
             catch (FileNotFoundException)
             {
-
-
+                CloseConnection();
             }
 
         }
@@ -90,17 +99,10 @@ namespace HTTPserverprojectTest
 
                 sw1.WriteLine(message);
             }
-            // Create client to send request, instead of browser.
-            TcpClient client = new TcpClient("localhost", 8080);
-            NetworkStream ns = client.GetStream();
-            StreamWriter sw = new StreamWriter(ns);
-            sw.AutoFlush = true;
-            //Send request for file we know isn't there
-            string request = "GET /existing.txt HTTP/1.0";
-            sw.WriteLine(request);
+            EstablishConnection("GET /existing.txt HTTP/1.0");
 
             // recieve response
-            StreamReader sr = new StreamReader(ns);
+            StreamReader sr = new StreamReader(_ns);
             // First line is static response
             string line = sr.ReadLine();
             //second, third and fourth lines are dynamic response, which is request split in 3.
@@ -109,7 +111,9 @@ namespace HTTPserverprojectTest
             line = sr.ReadLine();
             // fourth one is content-print. so this is the one we want :)
             line = sr.ReadLine();
+            CloseConnection();
             Assert.AreEqual(message, line);
+
         }
     }
 }

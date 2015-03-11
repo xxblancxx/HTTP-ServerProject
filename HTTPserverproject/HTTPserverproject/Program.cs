@@ -16,6 +16,7 @@ namespace HTTPserverproject
            
             TcpServer tcpServer = new TcpServer();
             tcpServer.ConnectAndStart();
+            Console.ReadKey(true);
 
         }
 

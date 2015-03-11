@@ -10,16 +10,16 @@ namespace HTTPserverproject
 {
     public class Program
     {
-        
+
         public static void Main(string[] args)
         {
-           
-            TcpServer tcpServer = new TcpServer();
-            tcpServer.ConnectAndStart();
-            Console.ReadKey(true);
-
+            while (true)
+            {
+                TcpServer server = new TcpServer();
+                server.ChatConnection();
+            }
         }
 
-        
+
     }
 }

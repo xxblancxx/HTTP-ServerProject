@@ -6,7 +6,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace HTTPserverprojectTest
 {
     [TestClass]
-    public class TcpServerTests
+    public class TcpServiceTests
     {
         private NetworkStream _ns;
         private StreamReader _sr;

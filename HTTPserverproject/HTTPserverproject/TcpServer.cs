@@ -1,119 +1,37 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using System.Net;
 using System.Net.Sockets;
+using System.Runtime.Serialization.Formatters;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace HTTPserverproject
 {
     public class TcpServer
     {
-        private static readonly string _rootCatalog = "c:/temp";
-        private NetworkStream _ns;
-        private StreamReader _sr;
-        private StreamWriter _sw;
-        private TcpListener _serverSocket;
-        private TcpClient _connectionSocket;
-        private string _msg;
-
-        private void EstablishConnection()
-        {
-            // Establish port on which server listens for requests
-            _serverSocket = new TcpListener(8080);
-            // Using obsolete version - reflected upon this. Easier at our skill level.
-
-            // Starting server
-            _serverSocket.Start();
-
-            // Establish connection on incoming request. (AcceptTcpClient)
-            _connectionSocket = _serverSocket.AcceptTcpClient();
-
-            // Get streams. Then split into specialized objects Reader/writer
-            _ns = _connectionSocket.GetStream();
-            _sr = new StreamReader(_ns);
-            _sw = new StreamWriter(_ns);
-            _sw.AutoFlush = true;
-        }
-        private void GiveStaticResponse()
-        {
-            _msg = "Hello World!";
-            Console.WriteLine(_msg); // added for console-UI
-            _sw.WriteLine(_msg);
-        }
-        private void GiveDynamicFileResponse()
-        {
-            // Now a dynamic response -split up the request by spaces
-            // split needs an array of string. only need one line (request line) not the rest.
-            var msg2 = _sr.ReadLine().Split(' ');
-
-            foreach (var s in msg2)//For each string in the array.
-            {
-                Console.WriteLine(s);
-                _sw.WriteLine(s); // write it out
-            }
-            foreach (var s in msg2)
-            {
-                // Start by checking if the filepath is nothing (just a "/")
-                if (s.Equals("/"))
-                {
-                    throw new NullReferenceException();
-                }
-
-                if (!s.Contains("GET") && !s.Contains("HTTP"))
-                {
-                    //Create stream for specific file. path from TCP-request.
-                    FileStream fs = new FileStream(_rootCatalog + s, FileMode.Open, FileAccess.Read);
-
-                    //using Filestream, read content and print it.
-                    using (fs)
-                    {
-                        StreamReader sr2 = new StreamReader(fs); //Specialized reader
-
-                        _msg = sr2.ReadToEnd(); //Read all content (to end)
-
-                        _sw.WriteLine(_msg); // Response
-                        Console.WriteLine(_msg); // console-print
-                    }
-                }
-            }
-        }
-        private void CloseServer()
-        {
-            _serverSocket.Stop();
-            _connectionSocket.Close();
-            _ns.Close();
-            _sr.Close();
-            _sw.Close();
-        }
-        public void ConnectAndStart() 
-        {
-            EstablishConnection();
-
-            try
-            {
-                GiveStaticResponse(); // Write Static Content in response
-                GiveDynamicFileResponse(); // splits request into 3 - gives response. If any, reads content of requested file
-                
-            }
-            catch (NullReferenceException) // In case of null-values
-            {
-                Console.WriteLine("NullReferenceException");
-                _sw.WriteLine("NullReferenceException");
-            }
-            catch (FileNotFoundException) // If the file requested isn't there.
-            {
-                Console.WriteLine("404 File Not Found");
-                _sw.WriteLine("404 File Not Found");
-            }
-            finally
-            {
-                CloseServer(); // Close connection
-            }
-        }
+        
 
         
+
+        public void ChatConnection()
+        {
+            // Establish port on which server listens for requests
+            TcpListener serverSocket = new TcpListener(8080);
+            // Using obsolete version - reflected upon this. Easier at our skill level.
+            serverSocket.Start(); // start server
+            while (true)
+            {
+                //wait for incoming request
+                TcpClient connectionSocket = serverSocket.AcceptTcpClient(); // establish connection on accepted request
+                
+                TcpService client = new TcpService(connectionSocket); // makes an instance of the service, which handles request.
+
+                Task t = new Task(client.ConnectAndStart);
+                t.Start();
+
+            }
+        }
     }
 }

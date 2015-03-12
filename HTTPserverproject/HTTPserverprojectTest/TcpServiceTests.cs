@@ -67,8 +67,11 @@ namespace HTTPserverprojectTest
 
             // Initial Response should be status saying OK
             Assert.AreEqual("HTTP/1.1 200 OK", line);
-            // Second response should be content of read file.
+            //Second Response should be Content-Type.
             line = _sr.ReadLine();
+            Assert.AreEqual("Content-Type: text/plain", line);
+            line = _sr.ReadLine(); // This line is an empty separator used to let the browser write out the .txt-file
+            line = _sr.ReadLine(); // // fourth response should be content of read file.
             Assert.AreEqual(_testFileContent,line);
 
             var requestArray = _request.Split(' '); // we split up request by spaces

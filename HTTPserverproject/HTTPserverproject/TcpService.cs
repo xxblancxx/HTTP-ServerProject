@@ -17,11 +17,36 @@ namespace HTTPserverproject
         private StreamWriter _sw;
         private TcpClient _connectionSocket;
         private string _msg;
+        private List<string> stringList;
+        private string[] msg2;
+
 
         public TcpService(TcpClient connectionSocket)
         {
             _connectionSocket = connectionSocket; // Constructor takes tcpclient as argument,
             //to reference client made in Server, taking from incoming request on listener
+        }
+
+        private void ReadFile(string filepath)
+        {
+            FileStream fs = new FileStream(_rootCatalog + filepath, FileMode.Open, FileAccess.Read);
+            if (fs.Length == 0) // Check if file is empty
+            {
+                throw new ArgumentNullException();
+            }
+            using (fs)
+            {
+                StreamReader sr2 = new StreamReader(fs); //Specialized reader
+                using (sr2)
+                {
+                    string line;
+                    while (!sr2.EndOfStream)
+                    {
+                        line = sr2.ReadLine();
+                        stringList.Add(line);
+                    }
+                }
+            }
         }
         private void EstablishConnection()
         {
@@ -37,13 +62,20 @@ namespace HTTPserverproject
             Console.WriteLine(_msg); // added for console-UI
             _sw.WriteLine(_msg);
         }
+
+        private void GiveStatusAndContent(string contentType)
+        {
+            _sw.WriteLine("HTTP/1.1 200 OK");
+            Console.WriteLine("HTTP/1.1 200 OK");
+            _sw.WriteLine("Content-Type: " + contentType);
+            Console.WriteLine("Content-Type: " + contentType);
+        }
         private void GiveDynamicFileResponse()
         {
             // Now a dynamic response -split up the request by spaces
             // split needs an array of string. only need one line (request line) not the rest.
-            var msg2 = _sr.ReadLine().Split(' ');
-
-            
+            msg2 = _sr.ReadLine().Split(' ');
+            stringList = new List<string>();
             foreach (var s in msg2)
             {
                 // Start by checking if the filepath is nothing (just a "/")
@@ -54,29 +86,17 @@ namespace HTTPserverproject
 
                 if (!s.Contains("GET") && !s.Contains("HTTP"))
                 {
+                    ReadFile(s);
+                    ContentHandler ch = new ContentHandler();
+                    string contentType = (ch.GetContentType(s));
                     //Create stream for specific file. path from TCP-request.
-                    FileStream fs = new FileStream(_rootCatalog + s, FileMode.Open, FileAccess.Read);
+                    if (contentType.Equals("text/plain"))
+                    {
+                        GiveStatusAndContent(contentType);
+                    }
+                    WriteOutFileAndSplitRequest();
 
-                    if (fs.Length == 0) // Check if file is empty
-                    {
-                        throw new ArgumentNullException();
-                    }
-                    //using Filestream, read content and print it.
-                    _sw.WriteLine("HTTP/1.1 200 OK");
-                    Console.WriteLine("HTTP/1.1 200 OK");
-                    using (fs)
-                    {
-                        StreamReader sr2 = new StreamReader(fs); //Specialized reader
-                        _msg = sr2.ReadToEnd(); //Read all content (to end)
-                        _sw.WriteLine(_msg); // Response
-                        Console.WriteLine(_msg); // console-print
-                    }
                 }
-            }
-            foreach (var s in msg2)//For each string in the array.
-            {
-                Console.WriteLine(s);
-                _sw.WriteLine(s); // write it out
             }
         }
         private void CloseConnection()
@@ -86,18 +106,46 @@ namespace HTTPserverproject
             _sr.Close();
             _sw.Close();
         }
+
+        private void WriteOutFileAndSplitRequest()
+        {
+            _sw.Write("\r\n"); // Necessary to show text-response in browser, as the "headers" after response and status code aren'
+            foreach (var line in stringList)
+            {
+                if (stringList.Count != 0)
+                {
+                    Console.WriteLine(line);
+                    _sw.WriteLine(line);
+                }
+            }
+            if (msg2.Count() != 0)
+            {
+                foreach (var s in msg2)//For each string in the array.
+                {
+                    Console.WriteLine(s);
+                    _sw.WriteLine(s); // write it out
+                }
+            }
+
+        }
         public void ConnectAndStart()
         {
             EstablishConnection(); // Opens up Tcp client connection for instance.
 
             try
             {
-                GiveDynamicFileResponse(); // splits request into 3 - gives response. If any, reads content of requested file
+                GiveDynamicFileResponse();
+                // splits request into 3 - gives response. If any, reads content of requested file
             }
             catch (ArgumentNullException) // In case of empty files.
             {
                 Console.WriteLine("HTTP/1.1 204 No Content");
                 _sw.WriteLine("HTTP/1.1 204 No Content");
+            }
+            catch (ArgumentException) // This exception is thrown if the requested file extension cannot be handled.
+            {
+                Console.WriteLine("HTTP/1.1 400 No Bad Request");
+                _sw.WriteLine("HTTP/1.1 400 Bad Request");
             }
             catch (FileNotFoundException) // If the file requested isn't there.
             {
